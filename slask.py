@@ -70,7 +70,7 @@ def run_hook(hooks, hook, *args):
 
     return responses
 
-def handle_message(client, event, hooks, config):
+def handle_message(client, event, hooks, config, db):
     # ignore bot messages and edits
     subtype = event.get("subtype", "")
     if subtype == "bot_message" or subtype == "message_changed": return
@@ -85,16 +85,17 @@ def handle_message(client, event, hooks, config):
     if msguser["name"] == botname or msguser["name"].lower() == "slackbot":
         return
 
-    return "\n".join(run_hook(hooks, "message", event, {"client": client, "config": config, "hooks": hooks}))
+    return "\n".join(run_hook(hooks, "message", event,
+        {"client": client, "config": config, "hooks": hooks, "db": db}))
 
 event_handlers = {
     "message": handle_message
 }
 
-def handle_event(client, event, hooks, config):
+def handle_event(client, event, hooks, config, db):
     handler = event_handlers.get(event.get("type"))
     if handler:
-        return handler(client, event, hooks, config)
+        return handler(client, event, hooks, config, db)
     return None
 
 def main(config):
@@ -110,13 +111,13 @@ def main(config):
         users = client.server.users
 
         #run init hook. This hook doesn't send messages to the server (ought it?)
-        run_hook(hooks, "init", {"client": client, "config": config, "hooks": hooks})
+        run_hook(hooks, "init", {"client": client, "config": config, "hooks": hooks, "db": db})
 
         while True:
             events = client.rtm_read()
             for event in events:
                 logging.debug("got {0}".format(event.get("type", event)))
-                response = handle_event(client, event, hooks, config)
+                response = handle_event(client, event, hooks, config, db)
                 if response:
                     client.rtm_send_message(event["channel"], response)
             time.sleep(1)
