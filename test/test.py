@@ -1,9 +1,10 @@
 # -*- coding: UTF-8 -*-
+import logging
+import sqlite3
+import tempfile
+from nose.tools import eq_
 
 import slask
-import tempfile
-import logging
-from nose.tools import eq_
 
 # TODO: kill logging output into stderr.
 # TODO: test logging to STDERR
@@ -95,3 +96,8 @@ def test_handle_message_basic():
 
     hooks = slask.init_plugins("test/plugins")
     eq_(slask.handle_message(client, event, hooks, None), msg)
+
+def test_init_db():
+    tf = tempfile.NamedTemporaryFile()
+    db = slask.init_db(tf.name)
+    eq_(type(db), type(sqlite3.connect(":memory:")))
