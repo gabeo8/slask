@@ -57,8 +57,8 @@ def test_missing_hook():
 # test handle_message
 
 def test_handle_message_subtype():
-    eq_(slask.handle_message(None, {"subtype": "bot_message"}, None, None), None)
-    eq_(slask.handle_message(None, {"subtype": "message_changed"}, None, None), None)
+    eq_(slask.handle_message(None, {"subtype": "bot_message"}, None, None, None), None)
+    eq_(slask.handle_message(None, {"subtype": "message_changed"}, None, None, None), None)
 
 class FakeClient(object):
     def __init__(self, server=None):
@@ -81,12 +81,12 @@ class FakeServer(object):
 def test_handle_message_ignores_self():
     client = FakeClient()
     event = {"user": "slask_test"}
-    eq_(slask.handle_message(client, event, None, None), None)
+    eq_(slask.handle_message(client, event, None, None, None), None)
 
 def test_handle_message_ignores_slackbot():
     client = FakeClient()
     event = {"user": "slackbot"}
-    eq_(slask.handle_message(client, event, None, None), None)
+    eq_(slask.handle_message(client, event, None, None, None), None)
 
 def test_handle_message_basic():
     client = FakeClient()
@@ -95,7 +95,7 @@ def test_handle_message_basic():
     event = {"user": "msguser", "text": msg}
 
     hooks = slask.init_plugins("test/plugins")
-    eq_(slask.handle_message(client, event, hooks, None), msg)
+    eq_(slask.handle_message(client, event, hooks, None, None), msg)
 
 def test_init_db():
     tf = tempfile.NamedTemporaryFile()
