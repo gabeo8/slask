@@ -62,10 +62,10 @@ def init_plugins(plugindir):
 
     return hooks
 
-def run_hook(hooks, hook, data, server):
+def run_hook(hooks, hook, *args):
     responses = []
     for hook in hooks.get(hook, []):
-        h = hook(data, server)
+        h = hook(*args)
         if h: responses.append(h)
 
     return responses
@@ -108,6 +108,10 @@ def main(config):
 
     if client.rtm_connect():
         users = client.server.users
+
+        #run init hook. This hook doesn't send messages to the server (ought it?)
+        run_hook(hooks, "init", {"client": client, "config": config, "hooks": hooks})
+
         while True:
             events = client.rtm_read()
             for event in events:
