@@ -5,6 +5,7 @@ import importlib
 import logging
 import os
 import re
+import sqlite3
 import sys
 import time
 import traceback
@@ -98,9 +99,13 @@ def handle_event(client, event, hooks, config):
 
 def main(config):
     init_log(config)
+    db = init_db(args.database_name)
+
     hooks = init_plugins("plugins")
 
     client = SlackClient(config["token"])
+    client.db = db
+
     if client.rtm_connect():
         users = client.server.users
         while True:
@@ -131,6 +136,9 @@ def repl(config, client, hook):
         print()
         pass
 
+def init_db(database_file):
+    return sqlite3.connect(database_file)
+
 if __name__=="__main__":
     from config import config
     import argparse
@@ -141,6 +149,8 @@ if __name__=="__main__":
     parser.add_argument('--hook', dest='hook', action='store', default='message',
                         help='Specify the hook to test. (Defaults to "message")')
     parser.add_argument('-c', dest="command", help='run a single command')
+    parser.add_argument('--database', '-d', dest='database_name', default='slask.sqlite3',
+                        help="Where to store the slask sqlite database. Defaults to slask.sqlite")
     args = parser.parse_args()
 
     if args.test:
