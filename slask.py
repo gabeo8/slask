@@ -96,7 +96,6 @@ def handle_event(client, event, hooks, config, db):
     handler = event_handlers.get(event.get("type"))
     if handler:
         return handler(client, event, hooks, config, db)
-    return None
 
 def main(config):
     init_log(config)
