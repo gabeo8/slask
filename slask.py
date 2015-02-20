@@ -65,8 +65,13 @@ def init_plugins(plugindir):
 def run_hook(hooks, hook, *args):
     responses = []
     for hook in hooks.get(hook, []):
-        h = hook(*args)
-        if h: responses.append(h)
+        try:
+            h = hook(*args)
+            if h: responses.append(h)
+        except:
+            logging.warning("Failed to run plugin {0}, module not loaded".format(hook))
+            logging.warning("{0}".format(sys.exc_info()[0]))
+            logging.warning("{0}".format(traceback.format_exc()))
 
     return responses
 
