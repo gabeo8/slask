@@ -15,6 +15,8 @@ import slask
 # TODO: test init_plugins with invalid plugins
 # TODO: test init_plugins with plugin without on_
 # TODO: test init_plugins __doc__ handling
+# TODO: test plugin that throws exception (on import, init and message)
+# TODO: test command line interface
 
 def test_plugin_success():
     hooks = slask.init_plugins("test/plugins")
