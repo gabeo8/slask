@@ -56,9 +56,9 @@ def init_plugins(plugindir):
         #bare except, because the modules could raise any number of errors
         #on import, and we want them not to kill our server
         except:
-            logging.info("import failed on module {0}, module not loaded".format(plugin))
-            logging.info("{0}".format(sys.exc_info()[0]))
-            logging.info("{0}".format(traceback.format_exc()))
+            logging.warning("import failed on module {0}, module not loaded".format(plugin))
+            logging.warning("{0}".format(sys.exc_info()[0]))
+            logging.warning("{0}".format(traceback.format_exc()))
 
     return hooks
 
