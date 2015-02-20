@@ -11,6 +11,7 @@ import time
 import traceback
 
 from slackclient import SlackClient
+from slask import Server
 
 def init_log(config):
     loglevel = config.get("loglevel", logging.INFO)
@@ -75,14 +76,14 @@ def run_hook(hooks, hook, *args):
 
     return responses
 
-def handle_message(client, event, hooks, config, db):
+def handle_message(event, server):
     # ignore bot messages and edits
     subtype = event.get("subtype", "")
     if subtype == "bot_message" or subtype == "message_changed": return
 
-    botname = client.server.login_data["self"]["name"]
+    botname = server.slack.server.login_data["self"]["name"]
     try:
-        msguser = client.server.users.get(event["user"])
+        msguser = server.slack.server.users.get(event["user"])
     except KeyError:
         logging.debug("event {0} has no user".format(event))
         return
@@ -90,40 +91,37 @@ def handle_message(client, event, hooks, config, db):
     if msguser["name"] == botname or msguser["name"].lower() == "slackbot":
         return
 
-    return "\n".join(run_hook(hooks, "message", event,
-        {"client": client, "config": config, "hooks": hooks, "db": db}))
+    return "\n".join(run_hook(server.hooks, "message", event, server))
 
 event_handlers = {
     "message": handle_message
 }
 
-def handle_event(client, event, hooks, config, db):
+def handle_event(event, server):
     handler = event_handlers.get(event.get("type"))
     if handler:
-        return handler(client, event, hooks, config, db)
+        return handler(event, server)
 
 def main(config):
     init_log(config)
     db = init_db(args.database_name)
-
     hooks = init_plugins("plugins")
+    slack = SlackClient(config["token"])
+    server = Server(slack, config, hooks, db)
 
-    client = SlackClient(config["token"])
-    client.db = db
-
-    if client.rtm_connect():
-        users = client.server.users
+    if slack.rtm_connect():
+        users = slack.server.users
 
         #run init hook. This hook doesn't send messages to the server (ought it?)
-        run_hook(hooks, "init", {"client": client, "config": config, "hooks": hooks, "db": db})
+        run_hook(hooks, "init", server)
 
         while True:
-            events = client.rtm_read()
+            events = slack.rtm_read()
             for event in events:
                 logging.debug("got {0}".format(event.get("type", event)))
-                response = handle_event(client, event, hooks, config, db)
+                response = handle_event(event, server)
                 if response:
-                    client.rtm_send_message(event["channel"], response)
+                    slack.rtm_send_message(event["channel"], response)
             time.sleep(1)
     else:
         logging.warn("Connection Failed, invalid token <{0}>?".format(config["token"]))
