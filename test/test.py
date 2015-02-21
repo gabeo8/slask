@@ -1,5 +1,6 @@
 # -*- coding: UTF-8 -*-
 import logging
+import os
 import sqlite3
 import tempfile
 from nose.tools import eq_
@@ -18,6 +19,9 @@ import slask
 # TODO: test plugin that throws exception (on import, init and message)
 # TODO: test command line interface
 
+DIR = os.path.dirname(os.path.realpath(__file__))
+PARENT = os.path.split(DIR)[0]
+
 def test_plugin_success():
     hooks = slask.init_plugins("test/plugins")
     eq_( len(hooks) ,  1)
@@ -28,8 +32,11 @@ def test_plugin_success():
     eq_( hooks["message"][0]({"text": u"bananas"}, None) ,  u"bananas")
 
 def test_plugin_invalid_dir():
-    hooks = slask.init_plugins("invalid/package")
-    eq_( len(hooks) ,  0)
+    try:
+        hooks = slask.init_plugins("invalid/package")
+    except slask.InvalidPluginDir:
+        return
+    1/0
 
 def test_plugin_logs():
     tfh = tempfile.NamedTemporaryFile()
@@ -44,7 +51,7 @@ def test_plugin_logs():
     log = tfh.read()
 
     assert "DEBUG:plugin: test/plugins/echo.py" in log
-    assert "DEBUG:attaching plugins." in log
+    assert "DEBUG:attaching" in log
 
 # test run_hook
 
@@ -59,8 +66,9 @@ def test_missing_hook():
 # test handle_message
 
 def test_handle_message_subtype():
-    eq_(slask.handle_message(None, {"subtype": "bot_message"}, None, None, None), None)
-    eq_(slask.handle_message(None, {"subtype": "message_changed"}, None, None, None), None)
+    server = slask.FakeServer()
+    eq_(slask.handle_message({"subtype": "bot_message"}, server), None)
+    eq_(slask.handle_message({"subtype": "message_changed"}, server), None)
 
 class FakeClient(object):
     def __init__(self, server=None):
@@ -81,23 +89,23 @@ class FakeServer(object):
         }
 
 def test_handle_message_ignores_self():
-    client = FakeClient()
+    server = slask.FakeServer()
     event = {"user": "slask_test"}
-    eq_(slask.handle_message(client, event, None, None, None), None)
+    eq_(slask.handle_message(event, server), None)
 
 def test_handle_message_ignores_slackbot():
-    client = FakeClient()
+    server = slask.FakeServer()
     event = {"user": "slackbot"}
-    eq_(slask.handle_message(client, event, None, None, None), None)
+    eq_(slask.handle_message(event, server), None)
 
 def test_handle_message_basic():
-    client = FakeClient()
-
     msg = u"Iñtërnâtiônàlizætiøn"
     event = {"user": "msguser", "text": msg}
 
     hooks = slask.init_plugins("test/plugins")
-    eq_(slask.handle_message(client, event, hooks, None, None), msg)
+    server = slask.FakeServer(hooks=hooks)
+
+    eq_(slask.handle_message(event, server), msg)
 
 def test_init_db():
     tf = tempfile.NamedTemporaryFile()
