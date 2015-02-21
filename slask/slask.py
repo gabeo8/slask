@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 from __future__ import print_function
+import copy
+import functools
 from glob import glob
 import importlib
 import logging
@@ -11,7 +13,15 @@ import time
 import traceback
 
 from slackclient import SlackClient
-from slask import Server
+from server import Server
+from fakeserver import FakeServer
+
+CURDIR = os.path.abspath(os.path.dirname(__file__))
+DIR = functools.partial(os.path.join, CURDIR)
+
+class InvalidPluginDir(Exception):
+    def __init__(self, plugindir):
+        self.message = "Unable to find plugin dir {0}".format(plugindir)
 
 def init_log(config):
     loglevel = config.get("loglevel", logging.INFO)
@@ -37,13 +47,22 @@ def init_log(config):
     logging.root = logger
 
 def init_plugins(plugindir):
+    if not plugindir:
+        plugindir = DIR("plugins")
+
+    if not os.path.isdir(plugindir):
+        raise InvalidPluginDir(plugindir)
+
     hooks = {}
+
+    oldpath = copy.deepcopy(sys.path)
+    sys.path.insert(0, plugindir)
 
     for plugin in glob(os.path.join(plugindir, "[!_]*.py")):
         logging.debug("plugin: {0}".format(plugin))
         try:
-            mod = importlib.import_module(plugin.replace(os.path.sep, ".")[:-3])
-            modname = mod.__name__.split('.')[1]
+            mod = importlib.import_module(os.path.basename(plugin)[:-3])
+            modname = mod.__name__
             for hook in re.findall("on_(\w+)", " ".join(dir(mod))):
                 hookfun = getattr(mod, "on_" + hook)
                 logging.debug("attaching {0}.{1} to {2}".format(modname, hookfun, hook))
@@ -61,6 +80,7 @@ def init_plugins(plugindir):
             logging.warning("{0}".format(sys.exc_info()[0]))
             logging.warning("{0}".format(traceback.format_exc()))
 
+    sys.path = oldpath
     return hooks
 
 def run_hook(hooks, hook, *args):
@@ -102,10 +122,30 @@ def handle_event(event, server):
     if handler:
         return handler(event, server)
 
-def main(config):
+def getif(config, name, envvar):
+    if envvar in os.environ:
+        config[name] = os.environ.get(envvar)
+
+def init_config():
+    config = {}
+    getif(config, "token", "SLACK_TOKEN")
+    getif(config, "loglevel", "SLASK_LOGLEVEL")
+    getif(config, "logfile", "SLASK_LOGFILE")
+    getif(config, "logformat", "SLASK_LOGFORMAT")
+    logging.debug(config)
+    return config
+
+def main(args):
+    if args.test:
+        return repl(FakeServer(), args)
+    elif args.command:
+        print(run_cmd(FakeServer(), args.hook))
+        return
+
+    config = init_config()
     init_log(config)
     db = init_db(args.database_name)
-    hooks = init_plugins("plugins")
+    hooks = init_plugins(args.pluginpath)
     slack = SlackClient(config["token"])
     server = Server(slack, config, hooks, db)
 
@@ -126,45 +166,22 @@ def main(config):
     else:
         logging.warn("Connection Failed, invalid token <{0}>?".format(config["token"]))
 
-def run_cmd(client, cmd, hook):
-    hooks = init_plugins("plugins")
-    event = { 'type': hook, 'text': cmd, "user": "msguser" }
-    return handle_event(client, event, hooks, config)
+def run_cmd(cmd, server, hook, pluginpath):
+    server.hooks = init_plugins(pluginpath)
+    event = { 'type': hook, 'text': cmd, "user": "msguser", 'ts': time.time(), 'team': None, 'channel': None}
+    return handle_event(event, server)
 
-def repl(config, client, hook):
+def repl(server, args):
     try:
         while 1:
             cmd = raw_input("slask> ")
             if cmd.lower() == "quit" or cmd.lower() == "exit":
                 return
 
-            print(run_cmd(client, cmd, hook))
+            print(run_cmd(cmd, server, args.hook, args.pluginpath))
     except (EOFError, KeyboardInterrupt):
         print()
         pass
 
 def init_db(database_file):
     return sqlite3.connect(database_file)
-
-if __name__=="__main__":
-    from config import config
-    import argparse
-
-    parser = argparse.ArgumentParser(description="Run the slask chatbot for Slack")
-    parser.add_argument('--test', '-t', dest='test', action='store_true', required=False,
-                        help='Enter command line mode to enter a slask repl')
-    parser.add_argument('--hook', dest='hook', action='store', default='message',
-                        help='Specify the hook to test. (Defaults to "message")')
-    parser.add_argument('-c', dest="command", help='run a single command')
-    parser.add_argument('--database', '-d', dest='database_name', default='slask.sqlite3',
-                        help="Where to store the slask sqlite database. Defaults to slask.sqlite")
-    args = parser.parse_args()
-
-    if args.test:
-        from test import FakeClient
-        repl(config, FakeClient(), args.hook)
-    elif args.command:
-        from test import FakeClient
-        print(run_cmd(FakeClient(), args.command, args.hook))
-    else:
-        main(config)
