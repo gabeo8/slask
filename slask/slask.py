@@ -141,7 +141,7 @@ def main(args):
     if args.test:
         return repl(FakeServer(), args)
     elif args.command:
-        print(run_cmd(FakeServer(), args.hook))
+        print(run_cmd(args.command, FakeServer(), args.hook, args.pluginpath))
         return
 
     config = init_config()
