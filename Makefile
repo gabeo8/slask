@@ -1,8 +1,16 @@
 .PHONY: test
-test:
-	python setup.py install
+test: install
 	nosetests -s
 
 .PHONY: clean
 clean:
 	rm -rf build dist slask.egg-info
+
+.PHONY: run
+run: install
+	bin/slask
+
+.PHONY: install
+install:
+	python setup.py install
+	make clean
