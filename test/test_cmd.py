@@ -8,6 +8,7 @@ from nose.tools import eq_
 DIR = os.path.dirname(os.path.realpath(__file__))
 TESTPLUGINS = os.path.join(DIR, "plugins")
 
+# http://stackoverflow.com/a/13160748/42559
 def sh(cmd):
      proc = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE)
      output = proc.communicate()[0].decode("utf8")
