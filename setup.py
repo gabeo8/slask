@@ -20,7 +20,7 @@ except:
 
 setup(
     name='slask',
-    version='3.0.0',
+    version='3.0.0a1',
     description='Simple and Clean Slack Chatbot',
     long_description=longdesc,
     author='Bill Mill',
