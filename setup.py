@@ -11,7 +11,7 @@ except ImportError:
     from distutils.core import setup
 
 required = ['requests>=2.5']
-packages = ['slask', 'slask.slackclient']
+packages = ['slask', 'slask.slackclient', 'slask.plugins']
 
 try:
     longdesc = open("README.md").read()
@@ -28,7 +28,7 @@ setup(
     url='https://github.com/llimllib/slask',
     packages=packages,
     scripts = ['bin/slask'],
-    package_data={'': ['LICENSE',]},
+    package_data={'': ['LICENSE',], '': ['slask/plugins/*.py']},
     include_package_data=True,
     install_requires=required,
     license='MIT',
