@@ -50,7 +50,7 @@ def init_plugins(plugindir):
     if not plugindir:
         plugindir = DIR("plugins")
 
-    logging.warning("plugindir: {0}".format(plugindir))
+    logging.debug("plugindir: {0}".format(plugindir))
 
     if not os.path.isdir(plugindir):
         raise InvalidPluginDir(plugindir)
