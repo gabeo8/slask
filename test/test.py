@@ -24,12 +24,12 @@ PARENT = os.path.split(DIR)[0]
 
 def test_plugin_success():
     hooks = slask.init_plugins("test/plugins")
-    eq_( len(hooks) ,  1)
+    eq_(len(hooks), 2)
     assert "message" in hooks
     assert isinstance(hooks, dict)
     assert isinstance(hooks["message"], list)
-    eq_( len(hooks["message"]) ,  1)
-    eq_( hooks["message"][0]({"text": u"bananas"}, None) ,  u"bananas")
+    eq_(len(hooks["message"]), 2)
+    eq_(hooks["message"][0]({"text": u"!echo bananas"}, None), u"!echo bananas")
 
 def test_plugin_invalid_dir():
     try:
@@ -57,11 +57,11 @@ def test_plugin_logs():
 
 def test_run_hook():
     hooks = slask.init_plugins("test/plugins")
-    eq_(slask.run_hook(hooks, "message", {"text": u"bananas"}, None), [u"bananas"])
+    eq_(slask.run_hook(hooks, "message", {"text": u"!echo bananas"}, None), [u"!echo bananas"])
 
 def test_missing_hook():
     hooks = slask.init_plugins("test/plugins")
-    eq_(slask.run_hook(hooks, "nonexistant", {"text": u"bananas"}, None), [])
+    eq_(slask.run_hook(hooks, "nonexistant", {"text": u"!echo bananas"}, None), [])
 
 # test handle_message
 
@@ -69,24 +69,6 @@ def test_handle_message_subtype():
     server = slask.FakeServer()
     eq_(slask.handle_message({"subtype": "bot_message"}, server), None)
     eq_(slask.handle_message({"subtype": "message_changed"}, server), None)
-
-class FakeClient(object):
-    def __init__(self, server=None):
-        self.server = server or FakeServer()
-
-class FakeServer(object):
-    def __init__(self, botname="slask_test"):
-        self.login_data = {
-            "self": {
-                "name": botname,
-            }
-        }
-
-        self.users = {
-            "slask_test": {"name": "slask_test"},
-            "msguser": {"name": "msguser"},
-            "slackbot": {"name": "slackbot"},
-        }
 
 def test_handle_message_ignores_self():
     server = slask.FakeServer()
@@ -99,7 +81,7 @@ def test_handle_message_ignores_slackbot():
     eq_(slask.handle_message(event, server), None)
 
 def test_handle_message_basic():
-    msg = u"Iñtërnâtiônàlizætiøn"
+    msg = u"!echo Iñtërnâtiônàlizætiøn"
     event = {"user": "msguser", "text": msg}
 
     hooks = slask.init_plugins("test/plugins")
@@ -111,3 +93,10 @@ def test_init_db():
     tf = tempfile.NamedTemporaryFile()
     db = slask.init_db(tf.name)
     eq_(type(db), type(sqlite3.connect(":memory:")))
+
+class FakeSlackClient(object):
+    def __init__(self, connect=True):
+        self.connect = connect
+    
+    def rtm_connect(self):
+        return self.connect
