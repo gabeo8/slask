@@ -35,7 +35,6 @@ def init_log(config):
     # create logger
     logger = logging.getLogger(__name__)
     logger.setLevel(loglevel)
-
     handler.setLevel(loglevel)
 
     # create formatter
@@ -167,9 +166,9 @@ def main(args):
 
     if server.slack.rtm_connect():
         #run init hook. This hook doesn't send messages to the server (ought it?)
-        run_hook(hooks, "init", server)
+        run_hook(server.hooks, "init", server)
 
-        loop(server.slack)
+        loop(server)
     else:
         logging.warn("Connection Failed, invalid token <{0}>?".format(config["token"]))
 
