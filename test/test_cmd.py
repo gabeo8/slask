@@ -30,3 +30,9 @@ def test_repl():
     eq_(out, u"slask> {0}\nslask>".format(msg))
     ret = proc.returncode
     eq_(ret, 0)
+
+# XXX: TODO
+#def test_hook():
+#    out, ret = sh(u"slask -c '' --pluginpath {0} --hook loop".format(TESTPLUGINS))
+#    out = out.strip()
+#    eq(out, ["init"])
