@@ -17,7 +17,16 @@ def sh(cmd):
 
 def test_cmd():
     msg = u"!echo Iñtërnâtiônàlizætiøn"
-    out, res = sh(u"slask -c '{0}' --pluginpath {1}".format(msg, TESTPLUGINS).encode("utf8"))
+    out, ret = sh(u"slask -c '{0}' --pluginpath {1}".format(msg, TESTPLUGINS).encode("utf8"))
     out = out.strip()
     eq_(out, msg)
-    eq_(res, 0)
+    eq_(ret, 0)
+
+def test_repl():
+    msg = u"!echo Iñtërnâtiônàlizætiøn"
+    proc = subprocess.Popen(["slask", "-t", "--pluginpath", TESTPLUGINS], stdout=subprocess.PIPE, stdin=subprocess.PIPE)
+    out = proc.communicate(msg.encode("utf8"))[0]
+    out = out.strip().decode("utf8")
+    eq_(out, u"slask> {0}\nslask>".format(msg))
+    ret = proc.returncode
+    eq_(ret, 0)
