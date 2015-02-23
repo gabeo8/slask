@@ -2,7 +2,7 @@ import logging
 
 config = {
     # Your slask API token
-    "token": "your-token-goes-here",
+    "token": "xoxb-3814620894-YsKfROkOEgMpGGqMXCRbsh3y",
 
     # The log level. Valid options are logging.{DEBUG, INFO, WARNING, ERROR, CRITICAL})
     "loglevel": logging.DEBUG,
