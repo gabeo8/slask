@@ -140,7 +140,7 @@ def init_config():
 def main(args):
     if args.test:
         return repl(FakeServer(), args)
-    elif args.command:
+    elif args.command is not None:
         print(run_cmd(args.command, FakeServer(), args.hook, args.pluginpath))
         return
 
