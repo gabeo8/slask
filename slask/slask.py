@@ -133,7 +133,6 @@ def init_config():
     getif(config, "loglevel", "SLASK_LOGLEVEL")
     getif(config, "logfile", "SLASK_LOGFILE")
     getif(config, "logformat", "SLASK_LOGFORMAT")
-    logging.debug(config)
     return config
 
 def loop(server):
@@ -149,6 +148,7 @@ def loop(server):
 def init_server(args, Server=SlaskServer, Client=SlackClient):
     config = init_config()
     init_log(config)
+    logging.debug("config: {0}".format(config))
     db = init_db(args.database_name)
     hooks = init_plugins(args.pluginpath)
     slack = Client(config["token"])
