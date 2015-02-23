@@ -13,7 +13,7 @@ import time
 import traceback
 
 from slackclient import SlackClient
-from server import Server
+from server import SlaskServer
 from fakeserver import FakeServer
 
 CURDIR = os.path.abspath(os.path.dirname(__file__))
@@ -137,6 +137,25 @@ def init_config():
     logging.debug(config)
     return config
 
+def loop(server):
+    while True:
+        events = server.slack.rtm_read()
+        for event in events:
+            logging.debug("got {0}".format(event.get("type", event)))
+            response = handle_event(event, server)
+            if response:
+                server.slack.rtm_send_message(event["channel"], response)
+        time.sleep(1)
+
+def init_server(args, Server=SlaskServer, Client=SlackClient):
+    config = init_config()
+    init_log(config)
+    db = init_db(args.database_name)
+    hooks = init_plugins(args.pluginpath)
+    slack = Client(config["token"])
+    server = Server(slack, config, hooks, db)
+    return server
+
 def main(args):
     if args.test:
         return repl(FakeServer(), args)
@@ -144,27 +163,13 @@ def main(args):
         print(run_cmd(args.command, FakeServer(), args.hook, args.pluginpath))
         return
 
-    config = init_config()
-    init_log(config)
-    db = init_db(args.database_name)
-    hooks = init_plugins(args.pluginpath)
-    slack = SlackClient(config["token"])
-    server = Server(slack, config, hooks, db)
+    server = init_server(args)
 
-    if slack.rtm_connect():
-        users = slack.server.users
-
+    if server.slack.rtm_connect():
         #run init hook. This hook doesn't send messages to the server (ought it?)
         run_hook(hooks, "init", server)
 
-        while True:
-            events = slack.rtm_read()
-            for event in events:
-                logging.debug("got {0}".format(event.get("type", event)))
-                response = handle_event(event, server)
-                if response:
-                    slack.rtm_send_message(event["channel"], response)
-            time.sleep(1)
+        loop(server.slack)
     else:
         logging.warn("Connection Failed, invalid token <{0}>?".format(config["token"]))
 
