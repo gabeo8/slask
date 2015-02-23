@@ -1,6 +1,6 @@
 .PHONY: test
 test: install
-	nosetests -s
+	nosetests -s --nologcapture
 
 .PHONY: clean
 clean:
